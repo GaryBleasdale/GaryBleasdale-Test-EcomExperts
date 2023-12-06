@@ -43,22 +43,93 @@
       {{ block.shopify_attributes }}
     >
       {%- for option in product.options_with_values -%}
-        <div class="product-form__input product-form__input--dropdown">
+        {% if option.name == 'Color' %}
           <label class="form__label" for="Option-{{ section.id }}-{{ forloop.index0 }}">
-            {{ option.name }}
+              {{ option.name }}
           </label>
-          <div class="select">
-            <select
-              id="Option-{{ section.id }}-{{ forloop.index0 }}"
-              class="select__select"
-              name="options[{{ option.name | escape }}]"
-              form="{{ product_form_id }}"
-            >
-              {% render 'product-variant-options', product: product, option: option, block: block %}
-            </select>
-            {% render 'icon-caret' %}
+         {% comment %} Hidden color selectors{% endcomment %}
+          <div class="product-form__input product-form__input--dropdown" style="display:none">
+            <div class="select">
+              <select
+                id="Option-{{ section.id }}-{{ forloop.index0 }}"
+                class="select__select"
+                name="options[{{ option.name | escape }}]"
+                form="{{ product_form_id }}"
+              >
+                {% render 'product-variant-options', product: product, option: option, block: block %}
+              </select>
+              {% render 'icon-caret' %}
+            </div>
           </div>
-        </div>
+          {% comment %} End hidden color selectors{% endcomment %}
+          {% comment %} Swatch selectors{% endcomment %}
+          {% assign SwatchData = '' %}
+          {% for variant in product.variants %}
+            {% assign CurrentVariantImage = variant.image.src | image_url: width: 600 %}
+            {% assign CurrentVariantOption1 = variant.option1 %}
+            {% unless SwatchData contains CurrentVariantImage %}
+              {% assign SwatchData = SwatchData | append: CurrentVariantImage | append: ',' | append: CurrentVariantOption1 | append: ";" %}
+            {% endunless %} 
+          {% endfor %}  
+          {% assign SwatchesArray = SwatchData | split: ";" %}
+
+          <div class="swatch-container" style="display:flex">
+            {% for Swatch in SwatchesArray %}
+              {% assign SplitSwatch = Swatch | split: "," %}
+              {% assign SwatchColor = ''  %}
+              {% assign SwatchImageSrc = ''  %}
+              {% for Swatch in SplitSwatch %}
+                {% if forloop.index == 1 %}
+                  {% assign SwatchImageSrc = Swatch %}
+                {% else %}
+                  {% assign SwatchColor = Swatch %}
+                {% endif %}
+              {% endfor %}  
+                <div class="swatch" data-swatch-color="{{ SwatchColor | handleize }}" style="padding:10px;border-radius:50px;display:flex">
+                   <img src="{{SwatchImageSrc}}" alt="{{ SwatchColor }}" class="swatch__image" style="width:50px;height:50px">
+                </div> 
+            {% endfor %}  
+          </div>
+        {% elsif option.name == 'Size' %}
+          <div class="product-form__input product-form__input--dropdown">
+            <label class="form__label" for="Option-{{ section.id }}-{{ forloop.index0 }}">
+              {{ option.name }}
+            </label>
+            <div class="select">
+              <select
+                id="Option-{{ section.id }}-{{ forloop.index0 }}"
+                class="select__select"
+                name="options[{{ option.name | escape }}]"
+                form="{{ product_form_id }}"
+              >
+                <option
+                  value="Unselected"
+                >
+                Unselected
+                </option>
+                {% render 'product-variant-options', product: product, option: option, block: block %}
+              </select>
+              {% render 'icon-caret' %}
+            </div>
+          </div>
+        {% else %}
+          <div class="product-form__input product-form__input--dropdown">
+            <label class="form__label" for="Option-{{ section.id }}-{{ forloop.index0 }}">
+              {{ option.name }}
+            </label>
+            <div class="select">
+              <select
+                id="Option-{{ section.id }}-{{ forloop.index0 }}"
+                class="select__select"
+                name="options[{{ option.name | escape }}]"
+                form="{{ product_form_id }}"
+              >
+                {% render 'product-variant-options', product: product, option: option, block: block %}
+              </select>
+              {% render 'icon-caret' %}
+            </div>
+          </div>
+        {% endif %}
       {%- endfor -%}
 
       <script type="application/json">
@@ -120,3 +191,81 @@
     </div>
   </div>
 </noscript>
+<script>
+       
+  document.addEventListener('DOMContentLoaded', function () {
+    // Code to control swatch behaviour and appearance 
+    const colorSelect = document.querySelector('#Option-{{ section.id }}-0');
+    const variantSelects = document.querySelector('variant-selects');
+    const swatches = document.querySelectorAll('.swatch');
+    const mainImageContainer = document.querySelector('.product__media');
+    let selectedColor = '{{ product.selected_variant.option1 }}';
+
+    function updateMainImage(swatch) {
+      let mainImg = mainImageContainer.querySelector('img');
+      mainImg.src = swatch.querySelector('img').src;
+      mainImg.srcset = '';
+    }
+
+    function isUnselectedSize() {
+      let sizesDropdown = document.querySelectorAll('#Option-{{ section.id }}-1>option');
+      return Array.from(sizesDropdown).some(option => option.value === 'Unselected' && option.selected);
+    }
+
+    function updateSwatchAndSelect(swatchColor) {
+      updateSwatchStyle(swatchColor);
+      updateSelectedOption(swatchColor);
+      if (!isUnselectedSize()) {
+        dispatchVariantChange();
+      }
+    }
+
+    function updateSwatchStyle(selectedColor) {
+      let swatchIsSelected = false;
+      swatches.forEach(swatch => {
+        if (swatch.dataset.swatchColor.toLowerCase() === selectedColor.toLowerCase()) {
+          swatch.style.background = 'black';
+          swatchIsSelected = true;
+        } else {
+          swatch.style.background = 'none';
+        }
+      });
+
+      if (!swatchIsSelected && swatches.length > 0) {
+        swatches[0].style.background = 'black';
+      }
+    }
+
+    function updateSelectedOption(selectedColor) {
+      colorSelect.querySelectorAll('option').forEach(option => {
+        option.selected = option.value.toLowerCase() === selectedColor.toLowerCase();
+      });
+    }
+
+    function dispatchVariantChange() {
+      const changeEvent = new Event('change', { bubbles: true });
+      variantSelects.dispatchEvent(changeEvent);
+    }
+
+    swatches.forEach(swatch => {
+      swatch.addEventListener('click', function () {
+        const swatchColor = this.dataset.swatchColor.toLowerCase();
+        updateMainImage(this);
+        updateSwatchAndSelect(swatchColor);
+      });
+    });
+
+
+    updateSwatchAndSelect(selectedColor);
+
+    // Ensure that when the user navigates back to the page after having selected a variant, and there is a size already selected, that the add to cart button is enabled
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted || (window.performance && window.performance.navigation.type == 2)) {
+        if (!isUnselectedSize()) {
+          dispatchVariantChange();
+        }
+      }
+    });
+  });
+
+</script>

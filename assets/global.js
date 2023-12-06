@@ -948,10 +948,13 @@ customElements.define('slideshow-component', SlideshowComponent);
 class VariantSelects extends HTMLElement {
   constructor() {
     super();
-    this.addEventListener('change', this.onVariantChange);
+    this.addEventListener('change', (event)=> {
+      this.onVariantChange(event.target.value)
+    });
   }
 
-  onVariantChange() {
+
+  onVariantChange(currentVariant) {
     this.updateOptions();
     this.updateMasterId();
     this.toggleAddButton(true, '', false);
@@ -961,7 +964,7 @@ class VariantSelects extends HTMLElement {
 
     if (!this.currentVariant) {
       this.toggleAddButton(true, '', true);
-      this.setUnavailable();
+      this.setUnavailable(currentVariant);
     } else {
       this.updateMedia();
       this.updateURL();
@@ -1033,14 +1036,14 @@ class VariantSelects extends HTMLElement {
       const previousOptionSelected = inputWrappers[index - 1].querySelector(':checked').value;
       const availableOptionInputsValue = selectedOptionOneVariants
         .filter((variant) => variant.available && variant[`option${index}`] === previousOptionSelected)
-        .map((variantOption) => variantOption[`option${index + 1}`]);
+        .map((variantOption) => variantOption[`option${index + 1}`]);  
       this.setInputAvailability(optionInputs, availableOptionInputsValue);
     });
   }
 
   setInputAvailability(listOfOptions, listOfAvailableOptions) {
     listOfOptions.forEach((input) => {
-      if (listOfAvailableOptions.includes(input.getAttribute('value'))) {
+      if (listOfAvailableOptions.includes(input.getAttribute('value'))  || input.getAttribute('value') === 'Unselected') {
         input.innerText = input.getAttribute('value');
       } else {
         input.innerText = window.variantStrings.unavailable_with_option.replace('[value]', input.getAttribute('value'));
@@ -1083,6 +1086,9 @@ class VariantSelects extends HTMLElement {
         if (this.currentVariant.id !== requestedVariantId) return;
 
         const html = new DOMParser().parseFromString(responseText, 'text/html');
+
+        let soldOut = html.querySelector('.price--sold-out')
+
         const destination = document.getElementById(`price-${this.dataset.section}`);
         const source = html.getElementById(
           `price-${this.dataset.originalSection ? this.dataset.originalSection : this.dataset.section}`
@@ -1136,6 +1142,11 @@ class VariantSelects extends HTMLElement {
         if (inventoryDestination) inventoryDestination.classList.toggle('hidden', inventorySource.innerText === '');
 
         const addButtonUpdated = html.getElementById(`ProductSubmitButton-${sectionId}`);
+
+        if (!soldOut) {
+          addButtonUpdated.removeAttribute('disabled')
+        } 
+
         this.toggleAddButton(
           addButtonUpdated ? addButtonUpdated.hasAttribute('disabled') : true,
           window.variantStrings.soldOut
@@ -1169,7 +1180,7 @@ class VariantSelects extends HTMLElement {
     if (!modifyClass) return;
   }
 
-  setUnavailable() {
+  setUnavailable(currentVariant) {
     const button = document.getElementById(`product-form-${this.dataset.section}`);
     const addButton = button.querySelector('[name="add"]');
     const addButtonText = button.querySelector('[name="add"] > span');
@@ -1182,7 +1193,12 @@ class VariantSelects extends HTMLElement {
     const qtyRules = document.getElementById(`Quantity-Rules-${this.dataset.section}`);
 
     if (!addButton) return;
-    addButtonText.textContent = window.variantStrings.unavailable;
+    if (currentVariant.trim() == "Unselected"){
+      addButtonText.textContent = "Please select a size"
+    } else {
+      addButtonText.textContent = window.variantStrings.unavailable;
+    }
+
     if (price) price.classList.add('hidden');
     if (inventory) inventory.classList.add('hidden');
     if (sku) sku.classList.add('hidden');
