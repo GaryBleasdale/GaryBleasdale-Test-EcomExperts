@@ -44,10 +44,11 @@
     >
       {%- for option in product.options_with_values -%}
         {% if option.name == 'Color' %}
-          <div class="product-form__input product-form__input--dropdown">
-            <label class="form__label" for="Option-{{ section.id }}-{{ forloop.index0 }}">
+          <label class="form__label" for="Option-{{ section.id }}-{{ forloop.index0 }}">
               {{ option.name }}
-            </label>
+          </label>
+         {% comment %} Hidden color selectors{% endcomment %}
+          <div class="product-form__input product-form__input--dropdown" style="display:none">
             <div class="select">
               <select
                 id="Option-{{ section.id }}-{{ forloop.index0 }}"
@@ -59,6 +60,35 @@
               </select>
               {% render 'icon-caret' %}
             </div>
+          </div>
+          {% comment %} End hidden color selectors{% endcomment %}
+          {% comment %} Swatch selectors{% endcomment %}
+          {% assign SwatchData = '' %}
+          {% for variant in product.variants %}
+            {% assign CurrentVariantImage = variant.image.src | image_url: width: 600 %}
+            {% assign CurrentVariantOption1 = variant.option1 %}
+            {% unless SwatchData contains CurrentVariantImage %}
+              {% assign SwatchData = SwatchData | append: CurrentVariantImage | append: ',' | append: CurrentVariantOption1 | append: ";" %}
+            {% endunless %} 
+          {% endfor %}  
+          {% assign SwatchesArray = SwatchData | split: ";" %}
+
+          <div class="swatch-container" style="display:flex">
+            {% for Swatch in SwatchesArray %}
+              {% assign SplitSwatch = Swatch | split: "," %}
+              {% assign SwatchColor = ''  %}
+              {% assign SwatchImageSrc = ''  %}
+              {% for Swatch in SplitSwatch %}
+                {% if forloop.index == 1 %}
+                  {% assign SwatchImageSrc = Swatch %}
+                {% else %}
+                  {% assign SwatchColor = Swatch %}
+                {% endif %}
+              {% endfor %}  
+                <div class="swatch" data-swatch-color="{{ SwatchColor | handleize }}" style="padding:10px;border-radius:50px;display:flex">
+                   <img src="{{SwatchImageSrc}}" alt="{{ SwatchColor }}" class="swatch__image" style="width:50px;height:50px">
+                </div> 
+            {% endfor %}  
           </div>
         {% elsif option.name == 'Size' %}
           <div class="product-form__input product-form__input--dropdown">
@@ -161,3 +191,78 @@
     </div>
   </div>
 </noscript>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+   
+    let selectedColor = '{{ product.selected_variant.option1 }}'
+
+
+    const swatches = document.querySelectorAll('.swatch');
+    const colorSelect = document.querySelector('#Option-{{ section.id }}-0');
+    const variantSelects = document.querySelector('variant-selects')
+    let mainImageContainer = document.querySelector('.product__media');
+
+
+    function updateSelectedOption(){
+     colorSelect.querySelectorAll('option').forEach(option => {
+        if (option.value.toLowerCase() === selectedColor.toLowerCase()) {
+          option.selected = true;
+        } else {
+          option.selected = false;
+        }
+      }); 
+    }
+
+    updateSelectedOption();
+    
+
+    function updateSwatchStyle(selectedColor) {
+      let swatchIsSelected = false;
+      swatches.forEach(swatch => {
+      if (swatch.dataset.swatchColor.toLowerCase() === selectedColor.toLowerCase()) {
+          swatch.style.background = 'black';
+          swatchIsSelected = true;
+        } else {
+          swatch.style.background = 'none';
+        }
+      });
+      if (!swatchIsSelected) {
+        swatches[0].style.background = 'black';
+      }
+    }
+
+    
+    updateSwatchStyle(selectedColor);
+
+
+
+
+    swatches.forEach(swatch => {
+      let originalSwatchSrc= swatch.querySelector('img').src
+      swatch.addEventListener('click', function () {
+        let mainImg = mainImageContainer.querySelector('img')
+        mainImg.src = originalSwatchSrc;
+        mainImg.srcset = '';
+        const swatchColor = this.dataset.swatchColor.toLowerCase();
+        for (let i = 0; i < colorSelect.options.length; i++) {
+          if (colorSelect.options[i].value.toLowerCase() === swatchColor) {
+            colorSelect.selectedIndex = i;
+            break;
+          }
+        }
+        let sizesDropdown = document.querySelectorAll('#Option-{{ section.id }}-1>option')
+        let unselectedIsSelected = false
+        for (option of sizesDropdown){
+          if (option.value == 'Unselected' && option.selected){
+           unselectedIsSelected = true
+          }
+        }
+        console.log(unselectedIsSelected)
+        const changeEvent = new Event('change', { bubbles: true 
+      });
+        variantSelects.dispatchEvent(changeEvent);
+        updateSwatchStyle(swatchColor);
+      });
+    });
+  });
+</script>

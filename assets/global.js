@@ -948,12 +948,13 @@ customElements.define('slideshow-component', SlideshowComponent);
 class VariantSelects extends HTMLElement {
   constructor() {
     super();
-    this.addEventListener('change', (event)=> this.onVariantChange(event.target.value));
+    this.addEventListener('change', (event)=> {
+      this.onVariantChange(event.target.value)
+    });
   }
 
 
   onVariantChange(currentVariant) {
-    
     this.updateOptions();
     this.updateMasterId();
     this.toggleAddButton(true, '', false);
