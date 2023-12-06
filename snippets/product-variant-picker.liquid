@@ -192,77 +192,78 @@
   </div>
 </noscript>
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-   
-    let selectedColor = '{{ product.selected_variant.option1 }}'
+    document.addEventListener('DOMContentLoaded', function () {
 
+      let selectedColor = '{{ product.selected_variant.option1 }}'
+      const swatches = document.querySelectorAll('.swatch');
+      const colorSelect = document.querySelector('#Option-{{ section.id }}-0');
+      const variantSelects = document.querySelector('variant-selects')
+      let mainImageContainer = document.querySelector('.product__media');
 
-    const swatches = document.querySelectorAll('.swatch');
-    const colorSelect = document.querySelector('#Option-{{ section.id }}-0');
-    const variantSelects = document.querySelector('variant-selects')
-    let mainImageContainer = document.querySelector('.product__media');
-
-
-    function updateSelectedOption(){
-     colorSelect.querySelectorAll('option').forEach(option => {
-        if (option.value.toLowerCase() === selectedColor.toLowerCase()) {
-          option.selected = true;
-        } else {
-          option.selected = false;
-        }
-      }); 
-    }
-
-    updateSelectedOption();
-    
-
-    function updateSwatchStyle(selectedColor) {
-      let swatchIsSelected = false;
-      swatches.forEach(swatch => {
-      if (swatch.dataset.swatchColor.toLowerCase() === selectedColor.toLowerCase()) {
-          swatch.style.background = 'black';
-          swatchIsSelected = true;
-        } else {
-          swatch.style.background = 'none';
-        }
-      });
-      if (!swatchIsSelected) {
-        swatches[0].style.background = 'black';
+      // Make sure the selected option is the same as the selected color
+      function updateSelectedOption() {
+        colorSelect.querySelectorAll('option').forEach(option => {
+          if (option.value.toLowerCase() === selectedColor.toLowerCase()) {
+            option.selected = true;
+          } else {
+            option.selected = false;
+          }
+        });
       }
-    }
 
-    
-    updateSwatchStyle(selectedColor);
-
-
-
-
-    swatches.forEach(swatch => {
-      let originalSwatchSrc= swatch.querySelector('img').src
-      swatch.addEventListener('click', function () {
-        let mainImg = mainImageContainer.querySelector('img')
-        mainImg.src = originalSwatchSrc;
-        mainImg.srcset = '';
-        const swatchColor = this.dataset.swatchColor.toLowerCase();
-        for (let i = 0; i < colorSelect.options.length; i++) {
-          if (colorSelect.options[i].value.toLowerCase() === swatchColor) {
-            colorSelect.selectedIndex = i;
-            break;
+      function updateSwatchStyle(selectedColor) {
+        let swatchIsSelected = false;
+        swatches.forEach(swatch => {
+          if (swatch.dataset.swatchColor.toLowerCase() === selectedColor.toLowerCase()) {
+            swatch.style.background = 'black';
+            swatchIsSelected = true;
+          } else {
+            swatch.style.background = 'none';
           }
+        });
+        if (!swatchIsSelected) {
+          swatches[0].style.background = 'black';
         }
-        let sizesDropdown = document.querySelectorAll('#Option-{{ section.id }}-1>option')
-        let unselectedIsSelected = false
-        for (option of sizesDropdown){
-          if (option.value == 'Unselected' && option.selected){
-           unselectedIsSelected = true
+      }
+
+      updateSelectedOption();
+      updateSwatchStyle(selectedColor);
+
+      
+      swatches.forEach(swatch => {
+        let originalSwatchSrc = swatch.querySelector('img').src
+        swatch.addEventListener('click', function () {
+          //Update the main image when the size option is 'unselected'.  I've left out the code for updating the lightbox as well, for the sake of brevity - the principle is the same
+          let mainImg = mainImageContainer.querySelector('img')
+          mainImg.src = originalSwatchSrc;
+          mainImg.srcset = '';
+          const swatchColor = this.dataset.swatchColor.toLowerCase();
+
+          // Sync the swatch color with the hidden select color
+          for (let i = 0; i < colorSelect.options.length; i++) {
+            if (colorSelect.options[i].value.toLowerCase() === swatchColor) {
+              colorSelect.selectedIndex = i;
+              break;
+            }
           }
-        }
-        console.log(unselectedIsSelected)
-        const changeEvent = new Event('change', { bubbles: true 
-      });
-        variantSelects.dispatchEvent(changeEvent);
-        updateSwatchStyle(swatchColor);
+
+          // Make sure that the 'change' Event in the 'variant-selects' element is not triggered when the size option is 'unselected'
+          let sizesDropdown = document.querySelectorAll('#Option-{{ section.id }}-1>option')
+          let unselectedIsSelected = false
+          for (option of sizesDropdown) {
+            if (option.value == 'Unselected' && option.selected) {
+              unselectedIsSelected = true
+            }
+          }
+          if (!unselectedIsSelected) {
+            const changeEvent = new Event('change', {
+              bubbles: true
+            });
+            variantSelects.dispatchEvent(changeEvent);
+          }
+
+          updateSwatchStyle(swatchColor);
+        });
       });
     });
-  });
 </script>
