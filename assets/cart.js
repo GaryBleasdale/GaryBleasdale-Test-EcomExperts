@@ -244,3 +244,14 @@ if (!customElements.get('cart-note')) {
     }
   );
 }
+
+// Remove bundled product when removing Handbag - Black / Medium from the cart
+let removeHandbagBlackMediumButton = document.querySelector('cart-remove-button a[aria-label="Remove Handbag - Black / Medium"]')
+if(removeHandbagBlackMediumButton){
+  bundledProduct = document.querySelector('cart-remove-button a[aria-label="Remove Soft Winter Jacket"]')
+  if (bundledProduct){
+    removeHandbagBlackMediumButton.addEventListener('click', function(){
+      setTimeout(()=>bundledProduct.click(),200)
+    })
+  }
+}

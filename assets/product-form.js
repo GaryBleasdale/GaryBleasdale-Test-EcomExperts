@@ -31,6 +31,8 @@ if (!customElements.get('product-form')) {
         delete config.headers['Content-Type'];
 
         const formData = new FormData(this.form);
+        let variantIdToAdd = formData.get('id');
+
         if (this.cart) {
           formData.append(
             'sections',
@@ -44,6 +46,7 @@ if (!customElements.get('product-form')) {
         fetch(`${routes.cart_add_url}`, config)
           .then((response) => response.json())
           .then((response) => {
+
             if (response.status) {
               publish(PUB_SUB_EVENTS.cartError, {
                 source: 'product-form',
@@ -97,6 +100,54 @@ if (!customElements.get('product-form')) {
             if (!this.error) this.submitButton.removeAttribute('aria-disabled');
             this.querySelector('.loading__spinner').classList.add('hidden');
           });
+
+          let form = this.form
+
+          if (variantIdToAdd == '40429590872119'){
+            setTimeout (()=>activateBundle(form),200)
+          }
+
+          
+          
+          function activateBundle(form){
+
+            const config = fetchConfig('javascript');
+            config.headers['X-Requested-With'] = 'XMLHttpRequest';
+            delete config.headers['Content-Type'];
+  
+            const formDataBundle = new FormData(form);
+  
+            formDataBundle.set('id', '40423469973559')
+            formDataBundle.set('product-id', '6888452882487')
+            formDataBundle.delete('options[Color]')
+            formDataBundle.delete('options[Size]')
+  
+            config.body = formDataBundle;
+  
+  
+            fetch(`${routes.cart_add_url}`, config)
+            .then((response) => response.json())
+            .then((response) => {
+
+              if (response.status) {
+                publish(PUB_SUB_EVENTS.cartError, {
+                  source: 'product-form',
+                  productVariantId: formData.get('id'),
+                  errors: response.errors || response.description,
+                  message: response.message,
+                });
+              }
+
+            })
+            .catch((e) => {
+              console.error(e);
+            })
+
+
+        }
+
+ 
+        
       }
 
       handleErrorMessage(errorMessage = false) {
