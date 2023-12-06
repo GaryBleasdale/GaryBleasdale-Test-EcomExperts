@@ -109,7 +109,7 @@ if (!customElements.get("product-form")) {
 
         // Activate bundling if the variant being added is the indicated one
         if (variantIdToAdd == "40429590872119") {
-          setTimeout(() => activateBundle(form), 200);
+          setTimeout(() => activateBundle(form), 500);
         }
 
         function activateBundle(form) {
